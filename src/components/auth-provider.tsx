@@ -30,13 +30,13 @@ const STORAGE_KEY = "pulse_mock_user";
 const mockUsers = [
   {
     id: "user_1",
-    email: "creator@makkan.com",
+    email: "creator@pulse.dev",
     password: "password123",
     role: "creator" as const,
   },
   {
     id: "user_2",
-    email: "admin@makkan.com",
+    email: "admin@pulse.dev",
     password: "password123",
     role: "admin" as const,
   },
