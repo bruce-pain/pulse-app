@@ -1,4 +1,4 @@
-import type { Form } from "@/types/form";
+import type { Form, FormResponse } from "@/types/form";
 
 export const mockForm: Form = {
   form_id: "form-001",
@@ -72,6 +72,7 @@ export const mockForms: Form[] = [
     form_id: "form-002",
     version: 1,
     title: "New Employee Feedback",
+    share_slug: "new-employee-feedback",
     type: "feedback",
     status: "published",
     settings: {
@@ -105,6 +106,7 @@ export const mockForms: Form[] = [
     form_id: "form-003",
     version: 1,
     title: "Office Snack Poll",
+    share_slug: "office-snack-poll",
     type: "poll",
     status: "closed",
     settings: {
@@ -125,4 +127,28 @@ export const mockForms: Form[] = [
       },
     ],
   },
+];
+
+/* ---------- Seeded responses (so results pages have something to show) ---------- */
+
+const names = ["Ada", "Tolu", "Segun", "Chidi", "Ife", "Bola", "Kemi", "Femi"];
+const snacks = ["Biscuits", "Fruit", "Popcorn", "Yoghurt"];
+
+// Deterministic, so every reload shows the same numbers
+export const mockResponses: FormResponse[] = [
+  ...names.map((name, i) => ({
+    id: `response-002-${i + 1}`,
+    form_id: "form-002",
+    submitted_at: new Date(Date.UTC(2026, 10, 3 + i, 9 + i, 15)).toISOString(),
+    answers: [
+      { questionId: "question-006", value: name },
+      { questionId: "question-007", value: [4, 5, 3, 4, 5, 2, 4, 5][i] },
+    ],
+  })),
+  ...Array.from({ length: 14 }, (_, i) => ({
+    id: `response-003-${i + 1}`,
+    form_id: "form-003",
+    submitted_at: new Date(Date.UTC(2026, 8, 10 + (i % 5), 12, i * 3)).toISOString(),
+    answers: [{ questionId: "question-008", value: snacks[[0, 1, 1, 2, 0, 1, 3, 1, 2, 1, 0, 1, 2, 1][i]] }],
+  })),
 ];

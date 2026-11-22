@@ -12,7 +12,9 @@ export type QuestionType =
 export interface FormSettings {
   anonymous: boolean;
   one_response: boolean;
-  deadline: string | null;
+  deadline: string | null; // "YYYY-MM-DD"
+  /** Shown on the confirmation screen after submitting */
+  thank_you_message?: string;
 }
 
 export interface FormQuestion {
@@ -41,4 +43,42 @@ export interface Form {
   status: FormStatus;
   settings: FormSettings;
   questions: FormQuestion[];
+  /** Set when the form is published. Public link: /f/{share_slug} */
+  share_slug?: string;
+  created_at?: string; // ISO date
+}
+
+/* ---------- Responses ---------- */
+
+/**
+ * An attached file. The file itself is uploaded first
+ * (POST /forms/{formId}/questions/{questionId}/files); the answer holds
+ * the reference the upload returns.
+ */
+export interface FileAnswer {
+  name: string;
+  size: number; // bytes
+  /** Signed link returned by the upload endpoint (absent in preview/mock) */
+  url?: string;
+  type?: string; // MIME type, only known for files picked in this browser
+}
+
+/**
+ * What one answer holds, by question type:
+ * short/long text → string, single choice → string, multi choice → string[],
+ * rating → number, file upload → FileAnswer[]. null = not answered.
+ */
+export type AnswerValue = string | string[] | number | FileAnswer[] | null;
+
+// Mirrors the API's SubmitAnswerDto: { questionId, value }
+export interface SubmitAnswer {
+  questionId: string;
+  value: Exclude<AnswerValue, null>;
+}
+
+export interface FormResponse {
+  id: string;
+  form_id: string;
+  submitted_at: string; // ISO date
+  answers: SubmitAnswer[];
 }

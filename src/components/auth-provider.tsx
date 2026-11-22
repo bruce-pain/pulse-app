@@ -3,114 +3,99 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useMemo,
   useSyncExternalStore,
   type ReactNode,
 } from "react";
 
-export type UserRole = "admin" | "creator";
+import { getCurrentUser, login as loginRequest } from "@/lib/auth-api";
+import {
+  clearSession,
+  parseSession,
+  readRawSession,
+  saveSession,
+  subscribeToSession,
+  updateSessionUser,
+} from "@/lib/auth-session";
+import type { User } from "@/types/auth";
 
-export interface User {
-  id: string;
-  email: string;
-  role: UserRole;
-}
+export type { User, UserRole } from "@/types/auth";
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  login: (email: string, password: string) => User | null;
+  /** Resolves with the user, or throws an ApiError. */
+  login: (email: string, password: string) => Promise<User>;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const STORAGE_KEY = "pulse_mock_user";
-
-const mockUsers = [
-  {
-    id: "user_1",
-    email: "creator@pulse.dev",
-    password: "password123",
-    role: "creator" as const,
-  },
-  {
-    id: "user_2",
-    email: "admin@pulse.dev",
-    password: "password123",
-    role: "admin" as const,
-  },
-];
-
-// ---- localStorage as an external store ----
-
-const listeners = new Set<() => void>();
-
-function subscribe(callback: () => void) {
-  listeners.add(callback);
-  window.addEventListener("storage", callback); // syncs across tabs
-  return () => {
-    listeners.delete(callback);
-    window.removeEventListener("storage", callback);
-  };
-}
-
-function emitChange() {
-  listeners.forEach((listener) => listener());
-}
-
-// string | null on the client, undefined on the server (= "not loaded yet")
-type Snapshot = string | null | undefined;
-
-function getSnapshot(): Snapshot {
-  return localStorage.getItem(STORAGE_KEY);
-}
-
-function getServerSnapshot(): Snapshot {
+// undefined on the server (= "not loaded yet"), string | null on the client
+function getServerSnapshot(): string | null | undefined {
   return undefined;
 }
 
-function parseUser(raw: Snapshot): User | null {
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw) as User;
-  } catch {
-    return null;
-  }
-}
-
-// ---- Provider ----
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const raw = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const raw = useSyncExternalStore(
+    subscribeToSession,
+    readRawSession,
+    getServerSnapshot,
+  );
 
   const isLoading = raw === undefined;
-  const user = useMemo(() => parseUser(raw), [raw]);
+  const session = useMemo(() => parseSession(raw), [raw]);
+  const user = session?.user ?? null;
+  const accessToken = session?.accessToken;
+  const expiresAt = session?.expiresAt;
 
-  function login(email: string, password: string): User | null {
-    const matchedUser = mockUsers.find(
-      (mockUser) =>
-        mockUser.email === email.trim().toLowerCase() &&
-        mockUser.password === password,
+  // Sign out automatically when the token expires (no refresh token exists).
+  useEffect(() => {
+    if (expiresAt === undefined) return;
+    const timeout = setTimeout(clearSession, expiresAt - Date.now());
+    return () => clearTimeout(timeout);
+  }, [expiresAt]);
+
+  // Once per token, ask the server who we are. This validates a token
+  // restored from localStorage and picks up role/name changes.
+  // A 401 here is handled by apiRequest (it clears the session).
+  useEffect(() => {
+    if (!accessToken) return;
+    let cancelled = false;
+
+    getCurrentUser()
+      .then((freshUser) => {
+        if (!cancelled) updateSessionUser(freshUser);
+      })
+      .catch(() => {
+        // Network/server error: keep the stored session and let the
+        // next real request decide.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken]);
+
+  async function login(email: string, password: string): Promise<User> {
+    const { access_token, expires_in, user } = await loginRequest(
+      email.trim(),
+      password,
     );
 
-    if (!matchedUser) return null;
+    saveSession({
+      accessToken: access_token,
+      expiresAt: Date.now() + expires_in * 1000,
+      user,
+    });
 
-    const authenticatedUser: User = {
-      id: matchedUser.id,
-      email: matchedUser.email,
-      role: matchedUser.role,
-    };
-
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(authenticatedUser));
-    emitChange();
-
-    return authenticatedUser;
+    return user;
   }
 
   function logout() {
-    localStorage.removeItem(STORAGE_KEY);
-    emitChange();
+    // The API has no logout endpoint; the JWT simply stops being sent.
+    clearSession();
   }
 
   return (

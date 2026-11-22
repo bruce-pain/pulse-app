@@ -10,6 +10,32 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ApiError } from "@/lib/api-client";
+
+function getSignInErrorMessage(err: unknown): string {
+  if (err instanceof ApiError) {
+    switch (err.status) {
+      case 401: // wrong email or password
+        return "We could not sign you in. Check the email and password and try again.";
+      case 400: // failed validation (bad email format, password < 8 chars)
+        return "Enter a valid email and a password of at least 8 characters.";
+      case 0: // no response at all
+        return "We could not reach the server. Check your connection and try again — the server may take up to a minute to wake up.";
+    }
+  }
+  return "Something went wrong on our side. Please try again.";
+}
+
+/**
+ * Where to go after signing in, from ?next=/f/some-form.
+ * Only paths on THIS site are allowed ("/x", never "//evil.com" or
+ * "https://evil.com"), otherwise a crafted link could send people to a
+ * fake site after they log in (an "open redirect").
+ */
+function getSafeNextPath(): string | null {
+  const next = new URLSearchParams(window.location.search).get("next");
+  return next && next.startsWith("/") && !next.startsWith("//") ? next : null;
+}
 
 const stats = [
   { value: "5", label: "Question types" },
@@ -21,25 +47,24 @@ export default function SigninPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { login } = useAuth();
   const router = useRouter();
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
+    setIsSubmitting(true);
 
-    const user = login(email, password);
-
-    if (!user) {
-      // copy only, matches the design
-      setError(
-        "We could not sign you in. Check the email and password and try again.",
-      );
-      return;
+    try {
+      await login(email, password);
+      // Leave isSubmitting true: we're navigating away.
+      router.replace(getSafeNextPath() ?? "/forms");
+    } catch (err) {
+      setError(getSignInErrorMessage(err));
+      setIsSubmitting(false);
     }
-
-    router.replace("/forms");
   }
 
   return (
@@ -79,7 +104,7 @@ export default function SigninPage() {
 
       {/* Right: sign-in card */}
       <section className="flex flex-col items-center justify-center bg-slate-50 px-6 py-10">
-        <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+        <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
           <h2 className="text-2xl font-semibold text-slate-900">
             Welcome back.
           </h2>
@@ -138,9 +163,11 @@ export default function SigninPage() {
 
             <Button
               type="submit"
+              disabled={isSubmitting}
+              aria-busy={isSubmitting}
               className="h-12 w-full rounded-xl bg-[#050d63] text-sm font-semibold hover:bg-[#0a1580]"
             >
-              Sign in
+              {isSubmitting ? "Signing in…" : "Sign in"}
             </Button>
           </form>
         </div>

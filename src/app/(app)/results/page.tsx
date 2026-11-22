@@ -74,7 +74,7 @@ export default function ResultsPage() {
   return (
     <main className="w-full flex-1">
       {/* Page header */}
-      <header className="flex flex-col gap-4 border-b border-slate-200 bg-white px-8 py-5 sm:flex-row sm:items-center sm:justify-between">
+      <header className="flex flex-col gap-4 border-b border-slate-200 bg-white px-4 sm:px-8 py-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">
             {form.title}
@@ -89,23 +89,23 @@ export default function ResultsPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex w-full items-center gap-3 sm:w-auto">
           <Button
             variant="outline"
-            className="h-11 rounded-xl px-4 font-semibold"
+            className="h-11 flex-1 rounded-xl px-4 sm:flex-none font-semibold"
           >
             <Download className="h-4 w-4" />
             Export CSV
           </Button>
-          <Button className="h-11 rounded-xl bg-[#050d63] px-5 font-semibold hover:bg-[#0a1580]">
+          <Button className="h-11 flex-1 rounded-xl sm:flex-none bg-[#050d63] px-5 font-semibold hover:bg-[#0a1580]">
             Share
           </Button>
         </div>
       </header>
 
-      <div className="mx-auto w-full max-w-7xl p-8">
+      <div className="mx-auto w-full max-w-7xl p-4 sm:p-8">
         <Tabs defaultValue="summary">
-          <TabsList className="h-auto gap-1 bg-transparent p-0">
+          <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto bg-transparent p-0 scrollbar-none">
             {[
               ["summary", "Summary"],
               ["individual", "Individual responses"],
@@ -114,7 +114,7 @@ export default function ResultsPage() {
               <TabsTrigger
                 key={value}
                 value={value}
-                className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-600 data-active:bg-[#eef1fd] data-active:text-[#050d63] data-[state=active]:bg-[#eef1fd] data-[state=active]:text-[#050d63]"
+                className="flex-none rounded-lg px-4 py-2 text-sm font-semibold text-slate-600 data-active:bg-[#eef1fd] data-active:text-[#050d63] data-[state=active]:bg-[#eef1fd] data-[state=active]:text-[#050d63]"
               >
                 {label}
               </TabsTrigger>

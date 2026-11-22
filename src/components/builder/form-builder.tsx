@@ -10,7 +10,13 @@ import { AddQuestionPanel } from "@/components/builder/add-question-panel";
 import { QuestionCard } from "@/components/builder/question-card";
 import { SettingsPanel } from "@/components/builder/question-settings";
 import { createEmptyForm, createQuestion } from "@/lib/form-defaults";
-import { createForm, deleteForm, updateForm } from "@/lib/forms-api";
+import { RespondentForm } from "@/components/respondent/respondent-form";
+import {
+  createForm,
+  deleteForm,
+  publishForm,
+  updateForm,
+} from "@/lib/forms-api";
 import type {
   Form,
   FormQuestion,
@@ -24,51 +30,6 @@ type PanelTab = "add" | "preview" | "settings";
 
 const panelCard =
   "scroll-mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm";
-
-function LivePreview({ form }: { form: Form }) {
-  return (
-    <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-4">
-      <div>
-        <h3 className="font-semibold text-slate-900">
-          {form.title || "Untitled form"}
-        </h3>
-        {form.description && (
-          <p className="mt-1 text-sm text-slate-600">{form.description}</p>
-        )}
-      </div>
-      {form.questions.map((question) => (
-        <div key={question.id} className="space-y-2">
-          <p className="text-sm font-medium text-slate-800">
-            {question.label || "Untitled question"}
-          </p>
-          {question.help_text && (
-            <p className="text-xs text-slate-500">{question.help_text}</p>
-          )}
-          {question.type === "multiple_choice" ? (
-            <div className="space-y-2">
-              {(question.config?.options ?? []).map((option, index) => (
-                <p
-                  key={`${question.id}-${index}`}
-                  className="text-sm text-slate-600"
-                >
-                  <span className="mr-2 inline-block h-4 w-4 rounded-full border border-slate-300 align-middle" />
-                  {option || `Option ${index + 1}`}
-                </p>
-              ))}
-            </div>
-          ) : (
-            <div className="h-10 rounded-lg border border-slate-200 bg-slate-50" />
-          )}
-        </div>
-      ))}
-      {form.questions.length === 0 && (
-        <p className="text-sm text-slate-500">
-          Add questions to preview your form.
-        </p>
-      )}
-    </div>
-  );
-}
 
 export function FormBuilder({
   initialForm,
@@ -211,9 +172,11 @@ export function FormBuilder({
     try {
       const payload = buildPayload(status);
 
+      // Always save the content as a draft first...
+      const draft = { ...payload, status: "draft" as const };
       const saved = isPersisted
-        ? await updateForm(payload.form_id, payload)
-        : await createForm(payload);
+        ? await updateForm(draft.form_id, draft)
+        : await createForm(draft);
 
       if (!saved) throw new Error("Nothing was saved");
 
@@ -221,8 +184,11 @@ export function FormBuilder({
       setIsPersisted(true);
       setIsDirty(false);
 
+      // ...then publishing is its own step (POST /forms/{id}/publish),
+      // which returns the form with its share slug.
       if (status === "published") {
-        router.push(`/forms/${saved.form_id}`);
+        const published = await publishForm(saved.form_id);
+        router.push(`/forms/${published.form_id}`);
       }
     } catch {
       setError("Could not save the form. Please try again.");
@@ -263,7 +229,7 @@ export function FormBuilder({
   return (
     <main className="w-full flex-1">
       {/* Header */}
-      <header className="flex flex-col gap-4 border-b border-slate-200 bg-white px-8 py-5 lg:flex-row lg:items-center lg:justify-between">
+      <header className="flex flex-col gap-4 border-b border-slate-200 bg-white px-4 sm:px-8 py-5 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0 flex-1">
           <input
             value={form.title}
@@ -282,12 +248,12 @@ export function FormBuilder({
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex w-full items-center gap-3 lg:w-auto">
           <Button
             type="button"
             variant="outline"
             onClick={() => goTo("preview")}
-            className="h-11 rounded-xl px-4 font-semibold"
+            className="h-11 flex-1 rounded-xl px-4 lg:flex-none font-semibold"
           >
             Preview
           </Button>
@@ -296,7 +262,7 @@ export function FormBuilder({
             variant="outline"
             disabled={isSaving}
             onClick={() => save("draft")}
-            className="h-11 rounded-xl px-4 font-semibold"
+            className="h-11 flex-1 rounded-xl px-4 lg:flex-none font-semibold"
           >
             Save draft
           </Button>
@@ -304,14 +270,14 @@ export function FormBuilder({
             type="button"
             disabled={isSaving}
             onClick={() => save("published")}
-            className="h-11 rounded-xl bg-[#050d63] px-5 font-semibold hover:bg-[#0a1580]"
+            className="h-11 flex-1 rounded-xl lg:flex-none bg-[#050d63] px-5 font-semibold hover:bg-[#0a1580]"
           >
             Publish
           </Button>
         </div>
       </header>
 
-      <div className="mx-auto grid w-full max-w-7xl gap-6 p-8 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="mx-auto grid w-full max-w-7xl gap-6 p-4 sm:p-8 lg:grid-cols-[minmax(0,1fr)_340px]">
         {/* Left: questions */}
         <div className="space-y-4">
           {error && (
@@ -409,8 +375,9 @@ export function FormBuilder({
             <p className="mt-3 border-l-2 border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
               Exactly what a respondent sees.
             </p>
-            <div className="mt-4">
-              <LivePreview form={form} />
+            {/* The SAME component the public page renders, in preview mode */}
+            <div className="mt-4 rounded-xl bg-slate-50 p-3">
+              <RespondentForm form={form} mode="preview" />
             </div>
           </section>
 

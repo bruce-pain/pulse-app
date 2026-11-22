@@ -17,7 +17,7 @@ export default function NewFormPage() {
   return (
     <main className="w-full flex-1">
       {/* Header */}
-      <header className="flex flex-col gap-4 border-b border-slate-200 bg-white px-8 py-5 sm:flex-row sm:items-center sm:justify-between">
+      <header className="flex flex-col gap-4 border-b border-slate-200 bg-white px-4 sm:px-8 py-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">
             Start from a template
@@ -36,7 +36,7 @@ export default function NewFormPage() {
       </header>
 
       {/* Template cards */}
-      <div className="mx-auto grid w-full max-w-7xl gap-6 p-8 md:grid-cols-2 lg:grid-cols-3">
+      <div className="mx-auto grid w-full max-w-7xl gap-6 p-4 sm:p-8 md:grid-cols-2 lg:grid-cols-3">
         {TEMPLATES.map((template) => {
           const { icon: Icon, box } = appearance[template.id];
           const questionCount = template.build().questions.length;

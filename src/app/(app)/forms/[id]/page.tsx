@@ -6,11 +6,12 @@ import { useParams, useRouter } from "next/navigation";
 
 import { FormBuilder } from "@/components/builder/form-builder";
 import { FormLiveView } from "@/components/forms/form-live-view";
+import { FormPageSkeleton } from "@/components/shared/loading-state";
 import { getFormById } from "@/lib/forms-api";
 import type { Form } from "@/types/form";
 
 export default function FormPage() {
-  const { formId } = useParams<{ formId: string }>();
+  const { id: formId } = useParams<{ id: string }>();
   const router = useRouter();
 
   const [form, setForm] = useState<Form | null>(null);
@@ -27,9 +28,9 @@ export default function FormPage() {
           return;
         }
 
-        // Closed forms go to results (per-form results page comes later)
+        // Closed forms only have results left to read
         if (data.status === "closed") {
-          router.replace("/results");
+          router.replace(`/forms/${data.form_id}/results`);
           return;
         }
 
@@ -45,12 +46,12 @@ export default function FormPage() {
   }, [formId, router]);
 
   if (isLoading) {
-    return <p className="p-8 text-sm text-slate-500">Loading form...</p>;
+    return <FormPageSkeleton />;
   }
 
   if (error || !form) {
     return (
-      <div className="p-8">
+      <div className="p-4 sm:p-8">
         <p className="text-sm text-red-600">{error}</p>
         <Link
           href="/forms"

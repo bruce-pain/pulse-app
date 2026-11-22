@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { getForms } from "@/lib/forms-api";
 import { EmptyFormsState } from "@/components/forms/empty-forms-state"; // NEW
+import { FormsTableSkeleton } from "@/components/shared/loading-state";
 import type { Form, FormStatus } from "@/types/form";
 
 const statusStyles: Record<FormStatus, string> = {
@@ -33,7 +34,7 @@ export default function FormsPage() {
 
         const data = await getForms();
         setForms(data);
-      } catch (error) {
+      } catch {
         setError("Could not load forms. Please try again.");
       } finally {
         setIsLoading(false);
@@ -71,7 +72,7 @@ export default function FormsPage() {
   return (
     <main className="w-full flex-1">
       {/* Page header */}
-      <header className="flex flex-col gap-4 border-b border-slate-200 bg-white px-8 py-5 sm:flex-row sm:items-center sm:justify-between">
+      <header className="flex flex-col gap-4 border-b border-slate-200 bg-white px-4 sm:px-8 py-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">Forms</h1>
           <p className="mt-1 text-sm text-slate-500">
@@ -87,7 +88,7 @@ export default function FormsPage() {
         </Link>
       </header>
 
-      <div className="mx-auto w-full max-w-7xl p-8">
+      <div className="mx-auto w-full max-w-7xl p-4 sm:p-8">
         {/* NEW: empty state replaces the filters and table */}
         {hasNoForms ? (
           <EmptyFormsState />
@@ -150,9 +151,7 @@ export default function FormsPage() {
             {/* Table card */}
             <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
               {isLoading ? (
-                <div className="px-6 py-12 text-center text-sm text-slate-500">
-                  Loading forms...
-                </div>
+                <FormsTableSkeleton />
               ) : error ? (
                 <div className="px-6 py-12 text-center text-sm text-red-600">
                   {error}
@@ -164,7 +163,6 @@ export default function FormsPage() {
                       <tr>
                         <th className="px-6 py-4 font-semibold">Form</th>
                         <th className="px-4 py-4 font-semibold">Status</th>
-                        <th className="px-4 py-4 font-semibold">Questions</th>
                         <th className="px-4 py-4 font-semibold">Created</th>
                         <th className="px-6 py-4 text-right font-semibold">
                           <span className="sr-only">Action</span>
@@ -189,19 +187,32 @@ export default function FormsPage() {
                               {form.status}
                             </span>
                           </td>
-                          <td className="px-4 py-5 text-slate-900">
-                            {form.questions.length}
+                          <td className="whitespace-nowrap px-4 py-5 text-slate-500">
+                            {form.created_at
+                              ? new Date(form.created_at).toLocaleDateString("en-GB", {
+                                  day: "numeric",
+                                  month: "short",
+                                  year: "numeric",
+                                })
+                              : "—"}
                           </td>
-                          <td className="px-4 py-5 text-slate-500">
-                            Not available yet
-                          </td>
-                          <td className="px-6 py-5 text-right">
-                            <Link
-                              href={`/forms/${form.form_id}`}
-                              className="font-medium text-slate-800 hover:underline"
-                            >
-                              {form.status === "draft" ? "Continue" : "Open"}
-                            </Link>
+                          <td className="whitespace-nowrap px-6 py-5 text-right">
+                            {form.status !== "draft" && (
+                              <Link
+                                href={`/forms/${form.form_id}/results`}
+                                className="mr-4 font-medium text-[#050d63] hover:underline"
+                              >
+                                Results
+                              </Link>
+                            )}
+                            {form.status !== "closed" && (
+                              <Link
+                                href={`/forms/${form.form_id}`}
+                                className="font-medium text-slate-800 hover:underline"
+                              >
+                                {form.status === "draft" ? "Continue" : "Share"}
+                              </Link>
+                            )}
                           </td>
                         </tr>
                       ))}

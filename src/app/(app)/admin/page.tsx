@@ -99,7 +99,7 @@ export default function AdminPage() {
   return (
     <main className="w-full flex-1">
       {/* Page header */}
-      <header className="flex flex-col gap-4 border-b border-slate-200 bg-white px-8 py-5 sm:flex-row sm:items-center sm:justify-between">
+      <header className="flex flex-col gap-4 border-b border-slate-200 bg-white px-4 sm:px-8 py-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">
             Users and roles
@@ -114,7 +114,7 @@ export default function AdminPage() {
         </Button>
       </header>
 
-      <div className="mx-auto w-full max-w-7xl space-y-6 p-8">
+      <div className="mx-auto w-full max-w-7xl space-y-6 p-4 sm:p-8">
         {/* Info note */}
         <p className="border-l-2 border-[#050d63] pl-3 text-xs leading-relaxed text-slate-500">
           Everyone with a company account can answer a form already — answering

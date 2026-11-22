@@ -4,6 +4,7 @@ import { useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
 import { useAuth } from "@/components/auth-provider";
+import { AppShellSkeleton } from "@/components/shared/loading-state";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const { user, isLoading } = useAuth();
@@ -16,19 +17,14 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   }, [user, isLoading, router]);
 
   if (isLoading || !user) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-sm text-muted-foreground">
-          Checking your session...
-        </p>
-      </div>
-    );
+    return <AppShellSkeleton />;
   }
 
   return (
-    <div className="flex min-h-screen">
+    // Column on mobile (top bar above content), row on desktop (sidebar beside it)
+    <div className="flex min-h-screen flex-col md:flex-row">
       <AppSidebar />
-      <div className="flex-1 bg-slate-50">{children}</div>
+      <div className="min-w-0 flex-1 bg-slate-50">{children}</div>
     </div>
   );
 }
